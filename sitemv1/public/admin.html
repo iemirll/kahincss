@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Paneli - Kahincss</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #1e1e1e;
+      color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Admin giriş kısmı */
+    .login-container {
+      width: 300px;
+      background-color: #2a2a2a;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #0d6efd;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background-color: #333;
+      color: #f4f4f4;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #0d6efd;
+      color: white;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0b5ed7;
+    }
+
+    .error-message {
+      color: red;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    /* Admin paneli */
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+    }
+
+    #admin-panel {
+      display: none;
+      width: 80%;
+      max-width: 800px;
+      background-color: #2a2a2a;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      flex-direction: column;
+    }
+
+    #messages {
+      margin-bottom: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      background-color: #444;
+      padding: 10px;
+      border-radius: 8px;
+      flex-grow: 1;
+    }
+
+    .message {
+      padding: 8px;
+      margin-bottom: 10px;
+      background-color: #333;
+      border-radius: 8px;
+      color: #f4f4f4;
+    }
+
+    #message-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    textarea {
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #444;
+      color: #f4f4f4;
+      background-color: #333;
+      resize: vertical;
+    }
+
+    button {
+      padding: 10px;
+      background-color: #0d6efd;
+      color: white;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0b5ed7;
+    }
+
+    .admin-header {
+      text-align: center;
+      font-size: 30px;
+      color: #0d6efd;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Admin Giriş Formu -->
+    <div id="login" class="login-container">
+      <h1>Admin Girişi</h1>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Kullanıcı Adı" required>
+        <input type="password" id="password" placeholder="Şifre" required>
+        <button type="submit">Giriş Yap</button>
+      </form>
+      <div id="error-message" class="error-message" style="display: none;">Siktir git göt :D</div>
+    </div>
+
+    <!-- Admin Paneli -->
+    <div id="admin-panel">
+      <div class="admin-header">Admin Paneli</div>
+      <div id="messages"></div>
+      <div id="message-container">
+        <textarea id="adminResponse" placeholder="Yapılacak cevap..."></textarea>
+        <button onclick="sendResponse()">Cevap Gönder</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = new WebSocket("ws://localhost:3000");
+    const messagesContainer = document.getElementById("messages");
+    const loginForm = document.getElementById("loginForm");
+    const errorMessage = document.getElementById("error-message");
+    const adminPanel = document.getElementById("admin-panel");
+    const loginContainer = document.getElementById("login");
+
+    const validUsername = "admin"; // Belirlenen kullanıcı adı
+    const validPassword = "2223"; // Belirlenen şifre
+
+    // Admin olarak giriş yapmayı kontrol et
+    loginForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      if (username === validUsername && password === validPassword) {
+        // Başarılı giriş
+        loginContainer.style.display = "none"; // Giriş formunu gizle
+        adminPanel.style.display = "flex"; // Admin panelini göster
+        socket.send(JSON.stringify({ type: "admin", content: "Admin bağlandı." }));
+      } else {
+        // Yanlış giriş
+        errorMessage.style.display = "block"; // Hata mesajını göster
+      }
+    });
+
+    socket.onopen = () => {
+      console.log("Admin WebSocket bağlantısı kuruldu.");
+    };
+
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+
+      if (message.type === "user") {
+        const messageDiv = document.createElement("div");
+        messageDiv.classList.add("message");
+        messageDiv.textContent = `Kullanıcı: ${message.content}`;
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    };
+
+    function sendResponse() {
+      const adminResponse = document.getElementById("adminResponse").value.trim();
+      if (!adminResponse) return;
+
+      // Admin cevabını gönder
+      socket.send(JSON.stringify({ type: "response", content: adminResponse }));
+
+      const adminMessageDiv = document.createElement("div");
+      adminMessageDiv.classList.add("message");
+      adminMessageDiv.textContent = `Admin: ${adminResponse}`;
+      messagesContainer.appendChild(adminMessageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      document.getElementById("adminResponse").value = "";
+    }
+  </script>
+</body>
+</html>

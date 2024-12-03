@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yapay Zeka Sihirbazı</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background: #1e1e1e;
+      color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #chat-container {
+      width: 80%;
+      max-width: 600px;
+      min-height: 400px;
+      background-color: #2a2a2a;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      border: 1px solid #444;
+    }
+
+    /* Kullanıcı mesajı için stil */
+    .user-message {
+      background-color: #0d6efd;
+      color: white;
+      align-self: flex-end;
+      padding: 12px;
+      border-radius: 15px;
+      margin-top: 10px;
+      max-width: 70%;
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Admin cevabı için stil */
+    .ai-message {
+      background-color: #28a745; /* Yeşil renk */
+      color: white;
+      align-self: flex-start; /* Kullanıcı mesajından farklı bir yönde hizalanması için */
+      padding: 12px;
+      border-radius: 15px;
+      margin-top: 10px;
+      max-width: 70%;
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Düşünüyorum... mesajı için stil */
+    .thinking {
+      background-color: #6c757d;
+      color: white;
+      text-align: center;
+      font-weight: bold;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    /* Konuşmaların kayma animasyonu */
+    @keyframes slideIn {
+      from {
+        transform: translateX(50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .user-message, .ai-message, .thinking {
+      animation: slideIn 0.5s ease-out;
+    }
+
+    #question-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      width: 80%;
+      max-width: 600px;
+    }
+
+    input[type="text"] {
+      width: 75%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 12px;
+      border: 1px solid #444;
+      margin-right: 10px;
+      outline: none;
+      background-color: #333;
+      color: #f4f4f4;
+      transition: all 0.3s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #0d6efd;
+      box-shadow: 0 0 5px rgba(13, 110, 253, 0.5);
+    }
+
+    button {
+      background-color: #0d6efd;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0b5ed7;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+      color: #0d6efd;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Kahincss</h1>
+    <div id="chat-container"></div>
+    <div id="question-container">
+      <input type="text" id="question" placeholder="Sorunu buraya yaz...">
+      <button onclick="askQuestion()">Sor</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = new WebSocket("ws://localhost:3000");
+
+    socket.onopen = () => {
+      console.log("WebSocket bağlantısı kuruldu.");
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket Hatası:", error);
+    };
+
+    window.onload = function () {
+      const chatContainer = document.getElementById("chat-container");
+
+      const aiMessage = document.createElement("div");
+      aiMessage.className = "thinking";
+      aiMessage.textContent = "Merhaba! Ben Kahincss, Şaşırmaya hazır mısın? 😊";
+      chatContainer.appendChild(aiMessage);
+
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    };
+
+    function askQuestion() {
+      const question = document.getElementById("question").value.trim();
+      if (!question) return;
+
+      const chatContainer = document.getElementById("chat-container");
+
+      // Kullanıcının mesajını ekle
+      const userMessage = document.createElement("div");
+      userMessage.className = "user-message";
+      userMessage.textContent = `Sen: ${question}`;
+      chatContainer.appendChild(userMessage);
+
+      // Düşünüyorum... mesajını ekle
+      const thinkingMessage = document.createElement("div");
+      thinkingMessage.className = "thinking";
+      thinkingMessage.textContent = "Düşünüyorum...";
+      chatContainer.appendChild(thinkingMessage);
+
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+
+      document.getElementById("question").value = "";
+
+      socket.send(JSON.stringify({ type: "user", content: question }));
+
+      socket.onmessage = (event) => {
+        const { type, content } = JSON.parse(event.data);
+
+        if (type === "response") {
+          const aiMessage = document.createElement("div");
+          aiMessage.className = "ai-message"; // Yeşil arka planlı admin cevabı
+          aiMessage.textContent = `Yapay Zeka: ${content}`;
+          chatContainer.appendChild(aiMessage);
+
+          // Düşünüyorum... mesajını kaldır
+          thinkingMessage.remove();
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      };
+    }
+  </script>
+</body>
+</html>
